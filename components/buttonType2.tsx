@@ -11,7 +11,7 @@ export const ButtonType2 = ({
 }) => {
   return (
     <button
-    className=" border border-white/30 rounded-lg w-full py-4"
+    className={`capitalize border border-white/30 rounded-lg w-full py-4 ${isDisabled && "bg-white/10 text-white/50"}`}
       onClick={() => {
         !isDisabled && callback && callback();
       }}

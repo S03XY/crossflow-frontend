@@ -5,13 +5,16 @@ import { LoginInterface } from "@/components/loginInterface";
 import { useWeb3Auth } from "@web3auth/modal-react-hooks";
 import { getDefaultExternalAdapters } from "@web3auth/default-evm-adapter";
 import { web3AuthOptions } from "@/utils/webAuthConfig";
+import { useAppSelector } from "@/redux/hooks";
 
 export const InterfaceProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  const { isConnected, initModal, web3Auth } = useWeb3Auth();
+  const { initModal, web3Auth } = useWeb3Auth();
+
+  const { isRegistered } = useAppSelector((state) => state.UserReducer);
 
   useEffect(() => {
     const init = async () => {
@@ -34,5 +37,5 @@ export const InterfaceProvider = ({
     init();
   }, [initModal, web3Auth]);
 
-  return <LoginInterface />;
+  return isRegistered ? children : <LoginInterface />;
 };

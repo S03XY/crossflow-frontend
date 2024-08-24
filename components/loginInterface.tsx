@@ -15,7 +15,8 @@ import {
   morphHolesky,
   arbitrumSepolia,
 } from "wagmi/chains";
-import Image from "next/image";
+import { useAppDispatch } from "@/redux/hooks";
+import { updateUserDetails } from "@/redux/reducer/user.reducer";
 
 type IStageCallback = {
   forwardStage?: () => void;
@@ -26,8 +27,11 @@ export const LoginInterface = () => {
   const [stage, setStage] = useState(0);
   const { isConnected } = useWeb3Auth();
 
+  const disptach = useAppDispatch();
+
   const forwardStage = () => {
-    if (stage === 4) {
+    if (stage === 3) {
+      disptach(updateUserDetails({ isRegistered: true }));
       return;
     }
 
