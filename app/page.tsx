@@ -11,7 +11,7 @@ export default function Home() {
   const dispatch = useAppDispatch();
 
   return !transferSection ? (
-    <div className="p-4">
+    <div className="p-6">
       <div className="border border-white/50 rounded-lg p-4 space-y-4">
         <h1 className="flex justify-start items-center text-xl space-x-2">
           <FaHandSparkles />

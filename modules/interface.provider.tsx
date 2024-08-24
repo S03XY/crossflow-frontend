@@ -12,7 +12,7 @@ export const InterfaceProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { initModal, web3Auth } = useWeb3Auth();
+  const { initModal, web3Auth, isConnected } = useWeb3Auth();
 
   const { isRegistered } = useAppSelector((state) => state.UserReducer);
 
@@ -37,5 +37,5 @@ export const InterfaceProvider = ({
     init();
   }, [initModal, web3Auth]);
 
-  return isRegistered ? children : <LoginInterface />;
+  return isRegistered && isConnected ? children : <LoginInterface />;
 };

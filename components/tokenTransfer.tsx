@@ -9,7 +9,7 @@ export const TokenTransfer = () => {
   const dispatch = useAppDispatch();
 
   return (
-    <div className="p-4">
+    <div className="p-6">
       <button
         className=""
         onClick={() => {
