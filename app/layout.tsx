@@ -27,15 +27,15 @@ export default function RootLayout({
         className={`${inter.className} h-screen w-full max-w-[650px] mx-auto bg-primary/[100] border-x border-white/30 relative`}
       >
         <CustomerReduxProvider>
-          <CustomWeb3AuthProvider>
-            <CustomWagmiProvider>
-              <InterfaceProvider>
-                <Banner />
-                {children}
-                <BottomNavigation />
-              </InterfaceProvider>
-            </CustomWagmiProvider>
-          </CustomWeb3AuthProvider>
+          {/* <CustomWeb3AuthProvider> */}
+          <CustomWagmiProvider>
+            <InterfaceProvider>
+              <Banner />
+              {children}
+              <BottomNavigation />
+            </InterfaceProvider>
+          </CustomWagmiProvider>
+          {/* </CustomWeb3AuthProvider> */}
         </CustomerReduxProvider>
       </body>
     </html>

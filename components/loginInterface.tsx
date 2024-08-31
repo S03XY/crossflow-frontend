@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { ButtonType1 } from "./button";
 import { GrLinkNext, GrLinkPrevious } from "react-icons/gr";
 import { TbUniverse } from "react-icons/tb";
-import { useWeb3Auth } from "@web3auth/modal-react-hooks";
 import { ButtonType2 } from "./buttonType2";
-import { useAccount } from "wagmi";
+import { switchChain } from "@wagmi/core";
+
+import {
+  useAccount,
+  useConnect,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import {
   sepolia,
   polygonAmoy,
@@ -14,9 +20,19 @@ import {
   chiliz,
   morphHolesky,
   arbitrumSepolia,
+  Chain,
 } from "wagmi/chains";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { updateUserDetails } from "@/redux/reducer/user.reducer";
+import axios from "axios";
+import {
+  BASE_URL,
+  chainConfigs,
+  HEDERA_REGISTER_CONTRACT,
+  SEPOLIA_REGISTER_CONTRACT,
+} from "@/utils/config";
+import { REGISTER_CONTRACT_ABI } from "@/utils/register.abi";
+import { encodeBytes32String } from "ethers";
 
 type IStageCallback = {
   forwardStage?: () => void;
@@ -25,7 +41,7 @@ type IStageCallback = {
 
 export const LoginInterface = () => {
   const [stage, setStage] = useState(0);
-  const { isConnected } = useWeb3Auth();
+  const { isConnected } = useAccount();
 
   const disptach = useAppDispatch();
 
@@ -90,12 +106,12 @@ const StageZero = ({ forwardStage }: IStageCallback) => {
 };
 
 const StageOne = ({ forwardStage, backwardStage }: IStageCallback) => {
-  const { connect, isConnected } = useWeb3Auth();
-  const { address } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { connector, isConnected, address } = useAccount();
 
   const login = async () => {
     try {
-      await connect();
+      connect({ connector: connectors[0] });
     } catch (err) {
       console.log("err", err);
     }
@@ -130,6 +146,22 @@ const StageOne = ({ forwardStage, backwardStage }: IStageCallback) => {
 };
 
 const StageTwo = ({ forwardStage, backwardStage }: IStageCallback) => {
+  const dispatch = useAppDispatch();
+
+  const checkForDomain = async (
+    name: string,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const data = await axios.get(`${BASE_URL}/check-domain?domain=${name}`);
+
+    if (data.data.doesExist) {
+      e.target.style.border = "1px solid red";
+    } else {
+      e.target.style.border = "1px solid white";
+    }
+    dispatch(updateUserDetails({ domain: name }));
+  };
+
   return (
     <div className="">
       <div className="my-4">
@@ -140,8 +172,11 @@ const StageTwo = ({ forwardStage, backwardStage }: IStageCallback) => {
       </div>
       <input
         type="text"
-        className="bg-transparent border border-white/30 p-2 rounded-lg w-full"
+        className="bg-transparent border border-white p-2 rounded-lg w-full focus:outline-none"
         placeholder="johndoe"
+        onChange={(e) => {
+          checkForDomain(e.target.value, e);
+        }}
       />
 
       <div className="flex justify-between items-center w-full mt-4">
@@ -165,29 +200,75 @@ const StageTwo = ({ forwardStage, backwardStage }: IStageCallback) => {
 };
 
 const StageThree = ({ forwardStage, backwardStage }: IStageCallback) => {
+  const { domain } = useAppSelector((state) => state.UserReducer);
+  const { chain, connector, isConnected, address } = useAccount();
+  const [cusConnector, setConnector] = useState<any>();
+  const { data: hash, isPending, writeContract } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
+
+  // useEffect(() => {
+  //   if (isConfirmed) {
+  //     forwardStage && forwardStage();
+  //   }
+  // }, [isConfirmed]);
+
   return (
     <div className="flex justify-start items-center flex-col  w-full">
       <h1 className="mb-4 w-full">Activate chains</h1>
       <div className="space-y-3  w-full">
         {[
           hederaTestnet,
-          morphHolesky,
-          chiliz,
           sepolia,
-          polygonAmoy,
-          arbitrumSepolia,
+          // morphHolesky,
+          // chiliz,
+          // polygonAmoy,
+          // arbitrumSepolia,
         ].map((c, i) => (
           <button
-            className={`p-3 border border-white/50 rounded-lg flex justify-between items-center w-full cursor-not-allowed`}
+            className={`p-3 border border-white/50 rounded-lg flex justify-between items-center w-full`}
             key={i}
+            onClick={async () => {
+              if (chain?.id === c.id) {
+                let address: any = "";
+                switch (c) {
+                  case sepolia:
+                    address = SEPOLIA_REGISTER_CONTRACT;
+                    break;
+                  case hederaTestnet:
+                    address = HEDERA_REGISTER_CONTRACT;
+                    break;
+                }
+
+                const encodedDomain = encodeBytes32String(domain);
+
+                writeContract({
+                  abi: REGISTER_CONTRACT_ABI,
+                  address: address,
+                  functionName: "makeRegisterIntent",
+                  args: [encodedDomain],
+                  connector: cusConnector,
+                });
+              } else {
+                alert("Metamask does not supprt programmatic chain switching");
+
+                return;
+              }
+            }}
           >
             <p>{c.name}</p>
-            <p className="text-sm bg-white text-black px-4 rounded-full font-bold ">
+
+            {/* <p className="text-sm bg-white text-black px-4 rounded-full font-bold ">
               Activated
-            </p>
+            </p> */}
           </button>
         ))}
       </div>
+
+      <p className="my-4">{isConfirming && "Transaction Pending..."}</p>
 
       <div className="flex justify-between items-center w-full mt-4">
         <ButtonType1
@@ -196,14 +277,14 @@ const StageThree = ({ forwardStage, backwardStage }: IStageCallback) => {
           callback={backwardStage}
         />
 
-        <ButtonType1
+        {/* <ButtonType1
           label="next"
           icon={GrLinkNext}
           callback={() => {
             // TODO if user is already register make him enter the app directly else show futher stages
             forwardStage && forwardStage();
           }}
-        />
+        /> */}
       </div>
     </div>
   );

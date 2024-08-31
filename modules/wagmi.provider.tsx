@@ -1,41 +1,32 @@
 "use client";
 
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { hederaTestnet, sepolia } from "wagmi/chains";
 import { custom } from "viem";
 import { useWeb3Auth } from "@web3auth/modal-react-hooks";
 import React, { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Web3AuthConnectorInstance from "@/utils/webAuthConfig";
+
+const queryClient = new QueryClient();
 
 export const CustomWagmiProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-//   const [count, setCount] = useState(0);
+  const config = createConfig({
+    chains: [hederaTestnet, sepolia],
+    transports: {
+      [hederaTestnet.id]: http(),
+      [sepolia.id]: http(),
+    },
+    connectors: [Web3AuthConnectorInstance([hederaTestnet, sepolia])],
+  });
 
-  const [config, setConfig] = useState<any>(
-    createConfig({
-      chains: [sepolia],
-      transports: {
-        [sepolia.id]: http(),
-      },
-    })
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
   );
-
-  const { provider } = useWeb3Auth();
-
-  useEffect(() => {
-    if (provider) {
-      setConfig(
-        createConfig({
-          chains: [sepolia],
-          transports: {
-            [sepolia.id]: provider ? custom(provider) : http(),
-          },
-        })
-      );
-    }
-  }, [config]);
-
-  return <WagmiProvider config={config}>{children}</WagmiProvider>;
 };
